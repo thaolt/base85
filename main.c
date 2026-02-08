@@ -12,7 +12,6 @@ static void print_usage(FILE* stream, int exit_code) {
     fprintf(stream, "Usage: %s [OPTION]... [FILE]\n", program_name);
     fprintf(stream, "%s encode or decode FILE, or standard input, to standard output.\n\n", program_name);
     fprintf(stream, "With no FILE, or when FILE is -, read standard input.\n\n");
-    fprintf(stream, "Mandatory arguments to long options are mandatory for short options too.\n");
     fprintf(stream, "  -d, --decode          decode data\n");
     fprintf(stream, "  --help        display this help and exit\n");
     fprintf(stream, "  --version     output version information and exit\n");
