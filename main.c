@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) {
     
     FILE* input = stdin;
     if (input_file && strcmp(input_file, "-") != 0) {
-        input = fopen(input_file, "r");
+        input = fopen(input_file, "rb");
         if (!input) {
             perror("Error opening input file");
             return 1;
