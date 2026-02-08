@@ -6,7 +6,7 @@ A lightweight C implementation of Base85 (Ascii85) encoding and decoding with bo
 
 Base85 is an encoding scheme that represents binary data using ASCII characters. It's more efficient than Base64, using 85 characters instead of 64, resulting in approximately 20% smaller encoded output.
 
-This implementation uses the Z85 character set:
+This implementation uses the RFC 1924 character set:
 ```
 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~
 ```
