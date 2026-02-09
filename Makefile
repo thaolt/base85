@@ -6,24 +6,28 @@ $(BUILD_DIR)/base85: $(BUILD_DIR) main.c base85.c
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-.PHONY: clean test base85 static static-arm64 static-win32
+.PHONY: clean test base85 linux.x86_64 linux.arm64 win32 release
 
 base85: $(BUILD_DIR)/base85
 
-static: $(BUILD_DIR)
-	docker build -t base85-static-builder .
-	docker run --rm -v $(PWD)/$(BUILD_DIR):/app/build base85-static-builder
-	docker rmi base85-static-builder
+linux.x86_64: $(BUILD_DIR)
+	docker build -t base85-linux-x86_64-builder .
+	docker run --rm -v $(PWD)/$(BUILD_DIR):/app/build base85-linux-x86_64-builder
+	docker rmi base85-linux-x86_64-builder
 
-static-arm64: $(BUILD_DIR)
-	docker buildx build --platform linux/arm64 -t base85-static-builder-arm64 . --load
-	docker run --rm --platform linux/arm64 -v $(PWD)/$(BUILD_DIR):/app/build base85-static-builder-arm64
-	docker rmi base85-static-builder-arm64
+linux.arm64: $(BUILD_DIR)
+	docker buildx build --platform linux/arm64 -t base85-linux-arm64-builder . --load
+	docker run --rm --platform linux/arm64 -v $(PWD)/$(BUILD_DIR):/app/build base85-linux-arm64-builder
+	docker rmi base85-linux-arm64-builder
 
-static-win32: $(BUILD_DIR)
-	docker build -f Dockerfile.win32 -t base85-static-builder-win32 .
-	docker run --rm -v $(PWD)/$(BUILD_DIR):/app/build base85-static-builder-win32
-	docker rmi base85-static-builder-win32
+win32: $(BUILD_DIR)
+	docker build -f Dockerfile.win32 -t base85-win32-builder .
+	docker run --rm -v $(PWD)/$(BUILD_DIR):/app/build base85-win32-builder
+	docker rmi base85-win32-builder
+
+release: $(BUILD_DIR) linux.x86_64 linux.arm64 win32
+	@echo "All release binaries built successfully!"
+	@ls -la $(BUILD_DIR)/
 
 test: $(BUILD_DIR)/base85
 	@echo "Running base85 tests..."

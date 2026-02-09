@@ -11,8 +11,8 @@ RUN apk add --no-cache \
 WORKDIR /app
 
 # Copy source files and build script
-COPY *.c *.h Makefile build-static.sh ./
+COPY *.c *.h Makefile build-linux.sh ./
 
 # Make build script executable and run it
-RUN chmod +x build-static.sh
-CMD ["./build-static.sh"]
+RUN chmod +x build-linux.sh
+CMD ["./build-linux.sh"]

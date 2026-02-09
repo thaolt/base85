@@ -11,8 +11,8 @@ RUN apk add --no-cache \
 WORKDIR /app
 
 # Copy source files and build script
-COPY *.c *.h Makefile build-static-win32.sh ./
+COPY *.c *.h Makefile build-win32.sh ./
 
 # Make build script executable and run it
-RUN chmod +x build-static-win32.sh
-CMD ["./build-static-win32.sh"]
+RUN chmod +x build-win32.sh
+CMD ["./build-win32.sh"]
