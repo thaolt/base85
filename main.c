@@ -6,7 +6,7 @@
 #include "base85.h"
 
 const char* program_name = "base85";
-const char* version_string = "1.1.1";
+const char* version_string = "1.1.2";
 
 static void print_usage(FILE* stream, int exit_code) {
     fprintf(stream, "Usage: %s [OPTION]... [FILE]\n", program_name);

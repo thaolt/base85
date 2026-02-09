@@ -44,18 +44,22 @@ make linux.x86_64
 # Build static binary for Linux ARM64
 make linux.arm64
 
+# Build static binary for FreeBSD amd64
+make freebsd.amd64
+
 # Build binary for Windows 32-bit (x86)
 make win32
 
-# Build all release binaries (Linux x86_64, Linux ARM64, Windows)
+# Build all release binaries (Linux x86_64, Linux ARM64, FreeBSD amd64, Windows)
 make release
 ```
 
-The Linux binaries are fully static and self-contained. The Windows binary is compatible with modern Windows systems and has minimal dependencies (only core Windows system libraries).
+The Linux and FreeBSD binaries are fully static and self-contained. The Windows binary is compatible with modern Windows systems and has minimal dependencies (only core Windows system libraries).
 
 **Binary Naming Convention:**
 - `base85.linux.x86_64` - Static Linux binary for x86_64 architecture
 - `base85.linux.arm64` - Static Linux binary for ARM64 architecture  
+- `base85.freebsd.amd64` - Static FreeBSD binary for amd64 architecture
 - `base85.win32.x86.exe` - Windows binary for 32-bit x86 architecture
 
 ## Usage

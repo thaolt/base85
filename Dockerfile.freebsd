@@ -1,4 +1,4 @@
-# Single-stage Dockerfile for building static base85 binary
+# Dockerfile for building FreeBSD-compatible base85 binary
 FROM alpine:latest
 
 # Install build dependencies
@@ -17,15 +17,9 @@ COPY *.c *.h Makefile ./
 RUN cat > build.sh << 'EOF'
 #!/bin/sh
 mkdir -p build
-ARCH=$(uname -m)
-if [ "$ARCH" = "aarch64" ]; then
-    OUTPUT="build/base85.linux.arm64"
-else
-    OUTPUT="build/base85.linux.x86_64"
-fi
-gcc -static -o $OUTPUT main.c base85.c -Wall -Wextra -O2
-strip $OUTPUT
-echo "Static Linux binary built and stripped successfully: $OUTPUT"
+gcc -static -o build/base85.freebsd.amd64 main.c base85.c -Wall -Wextra -O2
+strip build/base85.freebsd.amd64
+echo "FreeBSD-compatible binary built and stripped successfully: build/base85.freebsd.amd64"
 EOF
 
 RUN chmod +x build.sh

@@ -1,4 +1,4 @@
-# Dockerfile for cross-compiling static Windows base85 binary
+# Dockerfile for cross-compiling 32-bit Windows base85 binary
 FROM alpine:latest
 
 # Install build dependencies including MinGW-w64 cross-compiler for 32-bit
@@ -10,9 +10,18 @@ RUN apk add --no-cache \
 # Set working directory
 WORKDIR /app
 
-# Copy source files and build script
-COPY *.c *.h Makefile build-win32.sh ./
+# Copy source files and Makefile
+COPY *.c *.h Makefile ./
 
-# Make build script executable and run it
-RUN chmod +x build-win32.sh
-CMD ["./build-win32.sh"]
+# Create build script to be executed at runtime
+RUN cat > build.sh << 'EOF'
+#!/bin/sh
+mkdir -p build
+i686-w64-mingw32-gcc -static -static-libgcc -static-libstdc++ -Wl,-Bstatic \
+    -o build/base85.win32.x86.exe main.c base85.c -Wall -Wextra -O2 -lmsvcrt
+i686-w64-mingw32-strip build/base85.win32.x86.exe
+echo "32-bit Windows binary built and stripped successfully: build/base85.win32.x86.exe"
+EOF
+
+RUN chmod +x build.sh
+CMD ["./build.sh"]

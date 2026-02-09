@@ -6,7 +6,7 @@ $(BUILD_DIR)/base85: $(BUILD_DIR) main.c base85.c
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-.PHONY: clean test base85 linux.x86_64 linux.arm64 win32 release
+.PHONY: clean test base85 linux.x86_64 linux.arm64 freebsd.amd64 win32 release
 
 base85: $(BUILD_DIR)/base85
 
@@ -20,12 +20,17 @@ linux.arm64: $(BUILD_DIR)
 	docker run --rm --platform linux/arm64 -v $(PWD)/$(BUILD_DIR):/app/build base85-linux-arm64-builder
 	docker rmi base85-linux-arm64-builder
 
+freebsd.amd64: $(BUILD_DIR)
+	docker build -f Dockerfile.freebsd -t base85-freebsd-amd64-builder .
+	docker run --rm -v $(PWD)/$(BUILD_DIR):/app/build base85-freebsd-amd64-builder
+	docker rmi base85-freebsd-amd64-builder
+
 win32: $(BUILD_DIR)
 	docker build -f Dockerfile.win32 -t base85-win32-builder .
 	docker run --rm -v $(PWD)/$(BUILD_DIR):/app/build base85-win32-builder
 	docker rmi base85-win32-builder
 
-release: $(BUILD_DIR) linux.x86_64 linux.arm64 win32
+release: $(BUILD_DIR) linux.x86_64 linux.arm64 freebsd.amd64 win32
 	@echo "All release binaries built successfully!"
 	@ls -la $(BUILD_DIR)/
 
