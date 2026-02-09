@@ -1,12 +1,21 @@
 BUILD_DIR ?= build
 
+FREEBSD_IMAGE_URL ?= https://download.freebsd.org/releases/VM-IMAGES/14.3-RELEASE/amd64/Latest/FreeBSD-14.3-RELEASE-amd64-BASIC-CLOUDINIT-ufs.qcow2.xz
+FREEBSD_SSH_USER ?= freebsd
+FREEBSD_SSH_KEY ?=
+FREEBSD_SSH_PORT ?= 2222
+QEMU_BIN ?= qemu-system-x86_64
+QEMU_MEM ?= 2048
+QEMU_SMP ?= 2
+QEMU_EXTRA_ARGS ?=
+
 $(BUILD_DIR)/base85: $(BUILD_DIR) main.c base85.c
 	gcc -o $(BUILD_DIR)/base85 main.c base85.c -Wall -Wextra -O2
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-.PHONY: clean test base85 linux.x86_64 linux.arm64 freebsd.amd64 win32 release
+.PHONY: clean test base85 linux.x86_64 linux.arm64 freebsd.qemu win32 release
 
 base85: $(BUILD_DIR)/base85
 
@@ -20,17 +29,24 @@ linux.arm64: $(BUILD_DIR)
 	docker run --rm --platform linux/arm64 -v $(PWD)/$(BUILD_DIR):/app/build base85-linux-arm64-builder
 	docker rmi base85-linux-arm64-builder
 
-freebsd.amd64: $(BUILD_DIR)
-	docker build -f Dockerfile.freebsd -t base85-freebsd-amd64-builder .
-	docker run --rm -v $(PWD)/$(BUILD_DIR):/app/build base85-freebsd-amd64-builder
-	docker rmi base85-freebsd-amd64-builder
+freebsd.qemu: $(BUILD_DIR)
+	PROJECT_ROOT="$(PWD)" HOST_BUILD_DIR="$(BUILD_DIR)" \
+	FREEBSD_IMAGE_URL="$(FREEBSD_IMAGE_URL)" \
+	FREEBSD_SSH_USER="$(FREEBSD_SSH_USER)" \
+	FREEBSD_SSH_KEY="$(FREEBSD_SSH_KEY)" \
+	FREEBSD_SSH_PORT="$(FREEBSD_SSH_PORT)" \
+	QEMU_BIN="$(QEMU_BIN)" \
+	QEMU_MEM="$(QEMU_MEM)" \
+	QEMU_SMP="$(QEMU_SMP)" \
+	QEMU_EXTRA_ARGS="$(QEMU_EXTRA_ARGS)" \
+	sh ./scripts/freebsd_qemu_build.sh
 
 win32: $(BUILD_DIR)
 	docker build -f Dockerfile.win32 -t base85-win32-builder .
 	docker run --rm -v $(PWD)/$(BUILD_DIR):/app/build base85-win32-builder
 	docker rmi base85-win32-builder
 
-release: $(BUILD_DIR) linux.x86_64 linux.arm64 freebsd.amd64 win32
+release: $(BUILD_DIR) linux.x86_64 linux.arm64 freebsd.qemu win32
 	@echo "All release binaries built successfully!"
 	@ls -la $(BUILD_DIR)/
 
