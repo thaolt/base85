@@ -15,7 +15,7 @@ $(BUILD_DIR)/base85: $(BUILD_DIR) main.c base85.c
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-.PHONY: clean test base85 linux.x86_64 linux.arm64 freebsd.qemu win32 release
+.PHONY: clean test base85 linux.x86_64 linux.arm64 freebsd.qemu win32 wasm release
 
 base85: $(BUILD_DIR)/base85
 
@@ -46,7 +46,19 @@ win32: $(BUILD_DIR)
 	docker run --rm -v $(PWD)/$(BUILD_DIR):/app/build base85-win32-builder
 	docker rmi base85-win32-builder
 
-release: $(BUILD_DIR) linux.x86_64 linux.arm64 freebsd.qemu win32
+wasm: $(BUILD_DIR)
+	@echo "Building WASM library (requires lld package for wasm-ld linker)..."
+	@if command -v wasm-ld >/dev/null 2>&1; then \
+		clang --target=wasm32-unknown-unknown --no-standard-libraries -Wl,--no-entry -Wl,--export-all -o $(BUILD_DIR)/base85.wasm base85.c; \
+		echo "WASM library built: $(BUILD_DIR)/base85.wasm"; \
+	else \
+		echo "wasm-ld not found. Installing lld package..."; \
+		echo "Run: sudo apt install lld"; \
+		clang --target=wasm32-unknown-unknown --no-standard-libraries -c base85.c -o $(BUILD_DIR)/base85.wasm.o; \
+		echo "Object file created: $(BUILD_DIR)/base85.wasm.o (needs wasm-ld to link)"; \
+	fi
+
+release: $(BUILD_DIR) linux.x86_64 linux.arm64 freebsd.qemu win32 wasm
 	@echo "All release binaries built successfully!"
 	@ls -la $(BUILD_DIR)/
 
