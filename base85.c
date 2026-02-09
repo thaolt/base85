@@ -18,16 +18,14 @@
  */
 
 #include "base85.h"
-#include <string.h>
- #include <ctype.h>
 
 static char default_charset[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~";
 
-size_t base85_encode_block(const unsigned char* input, size_t input_len, char* output) {
+unsigned int base85_encode_block(const unsigned char* input, unsigned int input_len, char* output) {
     unsigned long num = 0;
     
     // Convert up to 4 bytes to a 32-bit number (big-endian)
-    for (size_t i = 0; i < input_len; i++) {
+    for (unsigned int i = 0; i < input_len; i++) {
         num = (num << 8) | input[i];
     }
 
@@ -45,15 +43,17 @@ size_t base85_encode_block(const unsigned char* input, size_t input_len, char* o
     }
     
     // For partial blocks, only output the needed characters
-    size_t output_len = (input_len * 5 + 3) / 4;
+    unsigned int output_len = (input_len * 5 + 3) / 4;
     // Python emits the first (input_len + 1) characters of the 5-char chunk.
-    memcpy(output, result, output_len);
+    for (unsigned int i = 0; i < output_len; i++) {
+        output[i] = result[i];
+    }
     
     return output_len;
 }
 
-size_t base85_encode(const unsigned char* input, size_t input_len, char* output) {
-    size_t output_pos = 0;
+unsigned int base85_encode(const unsigned char* input, unsigned int input_len, char* output) {
+    unsigned int output_pos = 0;
     
     // Process full 4-byte blocks
     while (input_len >= 4) {
@@ -71,7 +71,7 @@ size_t base85_encode(const unsigned char* input, size_t input_len, char* output)
     return output_pos;
 }
 
-size_t base85_decode_block(const char* input, size_t input_len, unsigned char* output) {
+unsigned int base85_decode_block(const char* input, unsigned int input_len, unsigned char* output) {
     // Python's base64.b85decode behavior:
     // - Input is padded with '~' to a multiple of 5 characters
     // - Each 5-char chunk decodes to 4 bytes
@@ -79,20 +79,24 @@ size_t base85_decode_block(const char* input, size_t input_len, unsigned char* o
     if (input_len == 0) return 0;
     if (input_len == 1) return 0;
 
-    size_t padding = 0;
+    unsigned int padding = 0;
     if (input_len < 5) {
         padding = 5 - input_len;
     }
 
     unsigned long num = 0;
-    for (size_t i = 0; i < input_len; i++) {
-        const char* p = strchr(default_charset, input[i]);
-        if (!p) return 0; // Invalid character
+    for (unsigned int i = 0; i < input_len; i++) {
+        // Manual strchr implementation
+        const char* p = default_charset;
+        while (*p != '\0' && *p != input[i]) {
+            p++;
+        }
+        if (*p == '\0') return 0; // Invalid character
         num = num * 85 + (unsigned long)(p - default_charset);
     }
 
     // Pad with '~' (the last digit, value 84)
-    for (size_t i = 0; i < padding; i++) {
+    for (unsigned int i = 0; i < padding; i++) {
         num = num * 85 + 84;
     }
 
@@ -104,15 +108,15 @@ size_t base85_decode_block(const char* input, size_t input_len, unsigned char* o
     return 4 - padding;
 }
 
-size_t base85_decode(const char* input, size_t input_len, unsigned char* output) {
-    size_t output_pos = 0;
+unsigned int base85_decode(const char* input, unsigned int input_len, unsigned char* output) {
+    unsigned int output_pos = 0;
 
     char carry[5];
-    size_t carry_len = 0;
+    unsigned int carry_len = 0;
 
-    for (size_t i = 0; i < input_len; i++) {
+    for (unsigned int i = 0; i < input_len; i++) {
         unsigned char c = (unsigned char)input[i];
-        if (isspace(c)) continue;
+        if (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' || c == '\f') continue;
 
         carry[carry_len++] = (char)c;
         if (carry_len == 5) {
