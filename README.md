@@ -33,6 +33,23 @@ make clean
 
 The executable will be created as `build/base85`.
 
+## Static Builds
+
+The project supports building static binaries for different platforms using Docker:
+
+```bash
+# Build static binary for current Linux platform
+make static
+
+# Build static binary for ARM64 Linux
+make static-arm64
+
+# Build static binary for 32-bit Windows (x86)
+make static-win32
+```
+
+Static binaries are self-contained and don't require any external dependencies to run. The Windows binary is compatible with Windows XP and later 32-bit Windows systems.
+
 ## Usage
 
 ### Command Line

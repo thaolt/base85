@@ -6,7 +6,7 @@ $(BUILD_DIR)/base85: $(BUILD_DIR) main.c base85.c
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-.PHONY: clean test base85 static static-arm64
+.PHONY: clean test base85 static static-arm64 static-win32
 
 base85: $(BUILD_DIR)/base85
 
@@ -19,6 +19,11 @@ static-arm64: $(BUILD_DIR)
 	docker buildx build --platform linux/arm64 -t base85-static-builder-arm64 . --load
 	docker run --rm --platform linux/arm64 -v $(PWD)/$(BUILD_DIR):/app/build base85-static-builder-arm64
 	docker rmi base85-static-builder-arm64
+
+static-win32: $(BUILD_DIR)
+	docker build -f Dockerfile.win32 -t base85-static-builder-win32 .
+	docker run --rm -v $(PWD)/$(BUILD_DIR):/app/build base85-static-builder-win32
+	docker rmi base85-static-builder-win32
 
 test: $(BUILD_DIR)/base85
 	@echo "Running base85 tests..."

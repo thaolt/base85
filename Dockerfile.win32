@@ -1,0 +1,18 @@
+# Dockerfile for cross-compiling static Windows base85 binary
+FROM alpine:latest
+
+# Install build dependencies including MinGW-w64 cross-compiler for 32-bit
+RUN apk add --no-cache \
+    i686-mingw-w64-gcc \
+    i686-mingw-w64-binutils \
+    make
+
+# Set working directory
+WORKDIR /app
+
+# Copy source files and build script
+COPY *.c *.h Makefile build-static-win32.sh ./
+
+# Make build script executable and run it
+RUN chmod +x build-static-win32.sh
+CMD ["./build-static-win32.sh"]
