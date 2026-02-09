@@ -6,7 +6,7 @@
 #include "base85.h"
 
 const char* program_name = "base85";
-const char* version_string = "1.0.0";
+const char* version_string = "1.1.0";
 
 static void print_usage(FILE* stream, int exit_code) {
     fprintf(stream, "Usage: %s [OPTION]... [FILE]\n", program_name);
@@ -21,6 +21,71 @@ static void print_usage(FILE* stream, int exit_code) {
 static void print_version(void) {
     printf("%s %s\n", program_name, version_string);
     exit(0);
+}
+
+static void base85_encode_stream(FILE* input, FILE* output) {
+    unsigned char buffer[1024];
+    unsigned char carry[4];
+    size_t carry_len = 0;
+    size_t bytes_read;
+
+    while ((bytes_read = fread(buffer, 1, sizeof(buffer), input)) > 0) {
+        size_t i = 0;
+
+        if (carry_len > 0) {
+            while (carry_len < 4 && i < bytes_read) {
+                carry[carry_len++] = buffer[i++];
+            }
+            if (carry_len == 4) {
+                char out_block[5];
+                size_t out_len = base85_encode_block(carry, 4, out_block);
+                fwrite(out_block, 1, out_len, output);
+                carry_len = 0;
+            }
+        }
+
+        while (i + 4 <= bytes_read) {
+            char out_block[5];
+            size_t out_len = base85_encode_block(buffer + i, 4, out_block);
+            fwrite(out_block, 1, out_len, output);
+            i += 4;
+        }
+
+        while (i < bytes_read) {
+            carry[carry_len++] = buffer[i++];
+        }
+    }
+
+    if (carry_len > 0) {
+        char out_block[5];
+        size_t out_len = base85_encode_block(carry, carry_len, out_block);
+        fwrite(out_block, 1, out_len, output);
+    }
+}
+
+static void base85_decode_stream(FILE* input, FILE* output) {
+    char buffer[1280];
+    char carry[5];
+    size_t carry_len = 0;
+    size_t bytes_read;
+
+    while ((bytes_read = fread(buffer, 1, sizeof(buffer), input)) > 0) {
+        for (size_t i = 0; i < bytes_read; i++) {
+            carry[carry_len++] = buffer[i];
+            if (carry_len == 5) {
+                unsigned char out_block[4];
+                size_t out_len = base85_decode_block(carry, 5, out_block);
+                fwrite(out_block, 1, out_len, output);
+                carry_len = 0;
+            }
+        }
+    }
+
+    if (carry_len > 0) {
+        unsigned char out_block[4];
+        size_t out_len = base85_decode_block(carry, carry_len, out_block);
+        fwrite(out_block, 1, out_len, output);
+    }
 }
 
 int main(int argc, char* argv[]) {

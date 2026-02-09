@@ -34,21 +34,16 @@ test: $(BUILD_DIR)/base85
 	@cmp $(BUILD_DIR)/test2.out $(BUILD_DIR)/test2.exp
 	@echo "✓ Simple text round-trip test passed"
 	@echo ""
-	@echo "Test 3: Zero block (should encode as 'z')"
-	@printf '\0\0\0\0' | $(BUILD_DIR)/base85 > $(BUILD_DIR)/test3.out
-	@grep -q "^z$$" $(BUILD_DIR)/test3.out
-	@echo "✓ Zero block test passed"
-	@echo ""
-	@echo "Test 4: Binary data"
-	@printf '\x00\x01\x02\x03\x04\x05' | $(BUILD_DIR)/base85 | $(BUILD_DIR)/base85 -d > $(BUILD_DIR)/test4.out
-	@printf '\x00\x01\x02\x03\x04\x05' > $(BUILD_DIR)/test4.exp
-	@cmp $(BUILD_DIR)/test4.out $(BUILD_DIR)/test4.exp
+	@echo "Test 3: Binary data"
+	@printf '\x00\x01\x02\x03\x04\x05' | $(BUILD_DIR)/base85 | $(BUILD_DIR)/base85 -d > $(BUILD_DIR)/test3.out
+	@printf '\x00\x01\x02\x03\x04\x05' > $(BUILD_DIR)/test3.exp
+	@cmp $(BUILD_DIR)/test3.out $(BUILD_DIR)/test3.exp
 	@echo "✓ Binary data round-trip test passed"
 	@echo ""
-	@echo "Test 5: Longer text"
-	@printf "The quick brown fox jumps over the lazy dog" | $(BUILD_DIR)/base85 | $(BUILD_DIR)/base85 -d > $(BUILD_DIR)/test5.out
-	@printf "The quick brown fox jumps over the lazy dog" > $(BUILD_DIR)/test5.exp
-	@cmp $(BUILD_DIR)/test5.out $(BUILD_DIR)/test5.exp
+	@echo "Test 4: Longer text"
+	@printf "The quick brown fox jumps over the lazy dog" | $(BUILD_DIR)/base85 | $(BUILD_DIR)/base85 -d > $(BUILD_DIR)/test4.out
+	@printf "The quick brown fox jumps over the lazy dog" > $(BUILD_DIR)/test4.exp
+	@cmp $(BUILD_DIR)/test4.out $(BUILD_DIR)/test4.exp
 	@echo "✓ Longer text round-trip test passed"
 	@echo ""
 	@echo "All tests passed!"

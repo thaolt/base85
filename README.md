@@ -1,6 +1,6 @@
 # Base85 Library & CLI Tool
 
-A lightweight C implementation of Base85 (Ascii85) encoding and decoding with both library functions and a command-line interface.
+A lightweight C implementation of Base85 (Ascii85) encoding and decoding with a small portable library and a command-line interface.
 
 ## Overview
 
@@ -13,10 +13,9 @@ This implementation uses the RFC 1924 character set:
 
 ## Features
 
-- **Library API**: Simple functions for encoding/decoding data in memory
-- **Stream API**: Functions for processing large files without loading everything into memory
-- **CLI Tool**: Command-line utility compatible with standard input/output
-- **Special Optimization**: Zero blocks (4 null bytes) are encoded as single 'z' character
+- **Library API**: Simple functions for encoding/decoding data in memory (no I/O)
+- **Block API**: Encode/decode a single partial block (useful for incremental/stream processing)
+- **CLI Tool**: Command-line utility compatible with standard input/output (all I/O lives in the executable)
 - **Cross-platform**: Pure C implementation with no external dependencies
 
 ## Building
@@ -72,12 +71,13 @@ size_t encoded_len = base85_encode(input, sizeof(input), output);
 unsigned char decoded[100];
 size_t decoded_len = base85_decode(output, encoded_len, decoded);
 
-// Stream processing (for large files)
-FILE* input = fopen("data.bin", "rb");
-FILE* output = fopen("encoded.txt", "w");
-base85_encode_stream(input, output);
-fclose(input);
-fclose(output);
+// Block-level (incremental) encoding
+char block_out[5];
+size_t block_out_len = base85_encode_block(input, 4, block_out);
+
+// Block-level (incremental) decoding
+unsigned char block_decoded[4];
+size_t block_decoded_len = base85_decode_block(block_out, block_out_len, block_decoded);
 ```
 
 ## API Reference
@@ -94,13 +94,15 @@ fclose(output);
   - Returns number of bytes written
   - Output buffer should be at least `input_len * 4 / 5 + 4` bytes
 
-- `void base85_encode_stream(FILE* input, FILE* output)`
-  - Encode data from input stream to output stream
-  - Processes data in chunks for memory efficiency
+- `size_t base85_encode_block(const unsigned char* input, size_t input_len, char* output)`
+  - Encode a single block of up to 4 bytes
+  - `input_len` must be in the range 1..4
+  - Returns number of characters written (1..5)
 
-- `void base85_decode_stream(FILE* input, FILE* output)`
-  - Decode data from input stream to output stream
-  - Processes data in chunks for memory efficiency
+- `size_t base85_decode_block(const char* input, size_t input_len, unsigned char* output)`
+  - Decode a single Base85 block
+  - `input_len` must be in the range 1..5
+  - Returns number of bytes written
 
 ## Testing
 
@@ -113,14 +115,13 @@ make test
 Tests cover:
 - Empty string handling
 - Simple text round-trip encoding/decoding
-- Zero block optimization (encodes as 'z')
 - Binary data preservation
 - Longer text processing
 
 ## Performance Characteristics
 
 - **Encoding**: 4 bytes → 5 characters (25% overhead)
-- **Memory**: Stream functions use 1KB buffers for efficient processing
+- **Memory**: The CLI processes streams in chunks for efficient processing
 - **Speed**: Optimized for both small and large data sets
 - **Compatibility**: Works with any binary data including null bytes
 
