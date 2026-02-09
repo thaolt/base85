@@ -19,6 +19,7 @@
 
 #include "base85.h"
 #include <string.h>
+ #include <ctype.h>
 
 static char default_charset[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~";
 
@@ -28,6 +29,12 @@ size_t base85_encode_block(const unsigned char* input, size_t input_len, char* o
     // Convert up to 4 bytes to a 32-bit number (big-endian)
     for (size_t i = 0; i < input_len; i++) {
         num = (num << 8) | input[i];
+    }
+
+    // Python base64.b85encode pads the final, partial block with zero bytes
+    // (i.e. treat missing bytes as trailing '\x00').
+    if (input_len < 4) {
+        num <<= (unsigned long)((4 - input_len) * 8);
     }
     
     // Convert to 5 Base85 digits
@@ -39,7 +46,8 @@ size_t base85_encode_block(const unsigned char* input, size_t input_len, char* o
     
     // For partial blocks, only output the needed characters
     size_t output_len = (input_len * 5 + 3) / 4;
-    memcpy(output, result + 5 - output_len, output_len);
+    // Python emits the first (input_len + 1) characters of the 5-char chunk.
+    memcpy(output, result, output_len);
     
     return output_len;
 }
@@ -64,53 +72,58 @@ size_t base85_encode(const unsigned char* input, size_t input_len, char* output)
 }
 
 size_t base85_decode_block(const char* input, size_t input_len, unsigned char* output) {
-    // Convert Base85 characters back to numbers
+    // Python's base64.b85decode behavior:
+    // - Input is padded with '~' to a multiple of 5 characters
+    // - Each 5-char chunk decodes to 4 bytes
+    // - Then the final output is truncated by the number of padding chars
+    if (input_len == 0) return 0;
+    if (input_len == 1) return 0;
+
+    size_t padding = 0;
+    if (input_len < 5) {
+        padding = 5 - input_len;
+    }
+
     unsigned long num = 0;
     for (size_t i = 0; i < input_len; i++) {
         const char* p = strchr(default_charset, input[i]);
         if (!p) return 0; // Invalid character
-        num = num * 85 + (p - default_charset);
+        num = num * 85 + (unsigned long)(p - default_charset);
     }
-    
-    // Don't pad for partial blocks - just work with what we have
-    
-    // Convert back to bytes (big-endian)
-    size_t output_len;
-    if (input_len == 5) {
-        output_len = 4;
-    } else {
-        output_len = (input_len - 1) * 4 / 5 + 1;
+
+    // Pad with '~' (the last digit, value 84)
+    for (size_t i = 0; i < padding; i++) {
+        num = num * 85 + 84;
     }
-    
-    // For partial blocks, we need to position the number correctly
-    if (input_len < 5) {
-        // Calculate how many bytes we're missing
-        int missing_bytes = 4 - output_len;
-        // Shift left by the missing bytes
-        num <<= (missing_bytes * 8);
-    }
-    
-    for (size_t i = 0; i < output_len; i++) {
-        output[i] = (num >> (24 - i * 8)) & 0xFF;
-    }
-    
-    return output_len;
+
+    output[0] = (num >> 24) & 0xFF;
+    output[1] = (num >> 16) & 0xFF;
+    output[2] = (num >> 8) & 0xFF;
+    output[3] = num & 0xFF;
+
+    return 4 - padding;
 }
 
 size_t base85_decode(const char* input, size_t input_len, unsigned char* output) {
     size_t output_pos = 0;
-    
-    // Process full 5-character blocks
-    while (input_len >= 5) {
-        output_pos += base85_decode_block(input, 5, output + output_pos);
-        input += 5;
-        input_len -= 5;
+
+    char carry[5];
+    size_t carry_len = 0;
+
+    for (size_t i = 0; i < input_len; i++) {
+        unsigned char c = (unsigned char)input[i];
+        if (isspace(c)) continue;
+
+        carry[carry_len++] = (char)c;
+        if (carry_len == 5) {
+            output_pos += base85_decode_block(carry, 5, output + output_pos);
+            carry_len = 0;
+        }
     }
-    
-    // Process remaining partial block
-    if (input_len > 0) {
-        output_pos += base85_decode_block(input, input_len, output + output_pos);
+
+    if (carry_len > 0) {
+        output_pos += base85_decode_block(carry, carry_len, output + output_pos);
     }
-    
+
     return output_pos;
 }

@@ -76,6 +76,16 @@ test: $(BUILD_DIR)/base85
 	@cmp $(BUILD_DIR)/test4.out $(BUILD_DIR)/test4.exp
 	@echo "✓ Longer text round-trip test passed"
 	@echo ""
+	@echo "Test 5: Python compatibility decode"
+	@$(BUILD_DIR)/base85 -d testdata/2945347.enc > $(BUILD_DIR)/test5.out
+	@cmp $(BUILD_DIR)/test5.out testdata/2945347.dec
+	@echo "✓ Python compatibility decode test passed"
+	@echo ""
+	@echo "Test 6: Python compatibility encode"
+	@$(BUILD_DIR)/base85 testdata/2945347.dec > $(BUILD_DIR)/test6.out
+	@cmp $(BUILD_DIR)/test6.out testdata/2945347.enc
+	@echo "✓ Python compatibility encode test passed"
+	@echo ""
 	@echo "All tests passed!"
 	@rm -f $(BUILD_DIR)/test*.out $(BUILD_DIR)/test*.exp
 
