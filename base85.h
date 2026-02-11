@@ -21,17 +21,17 @@
 #define BASE85_H
 
 // Encode binary data to Base85
-// Returns number of characters written to output (excluding null terminator)
+// Returns -1 on error, otherwise number of characters written to output (excluding null terminator)
 // output must have enough space (input_len * 5 / 4 + 5)
-unsigned int base85_encode(const unsigned char* input, unsigned int input_len, char* output);
+int base85_encode(const unsigned char* input, unsigned int input_len, char* output);
 
-unsigned int base85_encode_block(const unsigned char* input, unsigned int input_len, char* output);
+int base85_encode_block(const unsigned char* input, unsigned int input_len, char* output);
 
 // Decode Base85 text to binary data
-// Returns number of bytes written to output
+// Returns -1 on error (invalid character), otherwise number of bytes written to output
 // output must have enough space (input_len * 4 / 5 + 4)
-unsigned int base85_decode(const char* input, unsigned int input_len, unsigned char* output);
+int base85_decode(const char* input, unsigned int input_len, unsigned char* output);
 
-unsigned int base85_decode_block(const char* input, unsigned int input_len, unsigned char* output);
+int base85_decode_block(const char* input, unsigned int input_len, unsigned char* output);
 
 #endif

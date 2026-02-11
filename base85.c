@@ -14,120 +14,187 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
 #include "base85.h"
 
-static char default_charset[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~";
+static char default_charset[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghij"
+                                "klmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~";
 
-unsigned int base85_encode_block(const unsigned char* input, unsigned int input_len, char* output) {
-    unsigned long num = 0;
-    
-    // Convert up to 4 bytes to a 32-bit number (big-endian)
-    for (unsigned int i = 0; i < input_len; i++) {
-        num = (num << 8) | input[i];
-    }
+int base85_encode_block(const unsigned char *input, unsigned int input_len,
+                        char *output) {
+  // Input validation
+  if (!input || !output) {
+    return -1;
+  }
+  if (input_len == 0 || input_len > 4) {
+    return -1;
+  }
 
-    // Python base64.b85encode pads the final, partial block with zero bytes
-    // (i.e. treat missing bytes as trailing '\x00').
-    if (input_len < 4) {
-        num <<= (unsigned long)((4 - input_len) * 8);
-    }
-    
-    // Convert to 5 Base85 digits
-    char result[5];
-    for (int i = 4; i >= 0; i--) {
-        result[i] = default_charset[num % 85];
-        num /= 85;
-    }
-    
-    // For partial blocks, only output the needed characters
-    unsigned int output_len = (input_len * 5 + 3) / 4;
-    // Python emits the first (input_len + 1) characters of the 5-char chunk.
-    for (unsigned int i = 0; i < output_len; i++) {
-        output[i] = result[i];
-    }
-    
-    return output_len;
+  unsigned long num = 0;
+
+  // Convert up to 4 bytes to a 32-bit number (big-endian)
+  for (unsigned int i = 0; i < input_len; i++) {
+    num = (num << 8) | input[i];
+  }
+
+  // Python base64.b85encode pads the final, partial block with zero bytes
+  // (i.e. treat missing bytes as trailing '\x00').
+  if (input_len < 4) {
+    num <<= (unsigned long)((4 - input_len) * 8);
+  }
+
+  // Convert to 5 Base85 digits
+  char result[5];
+  for (int i = 4; i >= 0; i--) {
+    result[i] = default_charset[num % 85];
+    num /= 85;
+  }
+
+  // For partial blocks, only output the needed characters
+  unsigned int output_len = (input_len * 5 + 3) / 4;
+  // Python emits the first (input_len + 1) characters of the 5-char chunk.
+  for (unsigned int i = 0; i < output_len; i++) {
+    output[i] = result[i];
+  }
+
+  return (int)output_len;
 }
 
-unsigned int base85_encode(const unsigned char* input, unsigned int input_len, char* output) {
-    unsigned int output_pos = 0;
-    
-    // Process full 4-byte blocks
-    while (input_len >= 4) {
-        output_pos += base85_encode_block(input, 4, output + output_pos);
-        input += 4;
-        input_len -= 4;
+int base85_encode(const unsigned char *input, unsigned int input_len,
+                  char *output) {
+  // Input validation
+  if (!output) {
+    return -1;
+  }
+  if (input_len > 0 && !input) {
+    return -1;
+  }
+
+  unsigned int output_pos = 0;
+
+  // Process full 4-byte blocks
+  while (input_len >= 4) {
+    int result = base85_encode_block(input, 4, output + output_pos);
+    if (result < 0) {
+      return -1;
     }
-    
-    // Process remaining partial block
-    if (input_len > 0) {
-        output_pos += base85_encode_block(input, input_len, output + output_pos);
+    output_pos += (unsigned int)result;
+    input += 4;
+    input_len -= 4;
+  }
+
+  // Process remaining partial block
+  if (input_len > 0) {
+    int result = base85_encode_block(input, input_len, output + output_pos);
+    if (result < 0) {
+      return -1;
     }
-    
-    output[output_pos] = '\0';
-    return output_pos;
+    output_pos += (unsigned int)result;
+  }
+
+  output[output_pos] = '\0';
+  return (int)output_pos;
 }
 
-unsigned int base85_decode_block(const char* input, unsigned int input_len, unsigned char* output) {
-    // Python's base64.b85decode behavior:
-    // - Input is padded with '~' to a multiple of 5 characters
-    // - Each 5-char chunk decodes to 4 bytes
-    // - Then the final output is truncated by the number of padding chars
-    if (input_len == 0) return 0;
-    if (input_len == 1) return 0;
+int base85_decode_block(const char *input, unsigned int input_len,
+                        unsigned char *output) {
+  // Input validation
+  if (!input || !output) {
+    return -1;
+  }
 
-    unsigned int padding = 0;
-    if (input_len < 5) {
-        padding = 5 - input_len;
+  // Python's base64.b85decode behavior:
+  // - Input is padded with '~' to a multiple of 5 characters
+  // - Each 5-char chunk decodes to 4 bytes
+  // - Then the final output is truncated by the number of padding chars
+  if (input_len == 0)
+    return 0;
+  if (input_len == 1)
+    return 0;
+  if (input_len > 5)
+    return -1;
+
+  unsigned int padding = 0;
+  if (input_len < 5) {
+    padding = 5 - input_len;
+  }
+
+  unsigned long num = 0;
+  for (unsigned int i = 0; i < input_len; i++) {
+    // Manual strchr implementation
+    const char *p = default_charset;
+    while (*p != '\0' && *p != input[i]) {
+      p++;
     }
-
-    unsigned long num = 0;
-    for (unsigned int i = 0; i < input_len; i++) {
-        // Manual strchr implementation
-        const char* p = default_charset;
-        while (*p != '\0' && *p != input[i]) {
-            p++;
-        }
-        if (*p == '\0') return 0; // Invalid character
-        num = num * 85 + (unsigned long)(p - default_charset);
+    if (*p == '\0') {
+      // Invalid character found
+      return -1;
     }
+    num = num * 85 + (unsigned long)(p - default_charset);
+  }
 
-    // Pad with '~' (the last digit, value 84)
-    for (unsigned int i = 0; i < padding; i++) {
-        num = num * 85 + 84;
-    }
+  // Pad with '~' (the last digit, value 84)
+  for (unsigned int i = 0; i < padding; i++) {
+    num = num * 85 + 84;
+  }
 
-    output[0] = (num >> 24) & 0xFF;
-    output[1] = (num >> 16) & 0xFF;
-    output[2] = (num >> 8) & 0xFF;
-    output[3] = num & 0xFF;
+  // Check for overflow (value too large for 32-bit)
+  if (num > 0xFFFFFFFFUL) {
+    return -1;
+  }
 
-    return 4 - padding;
+  output[0] = (num >> 24) & 0xFF;
+  output[1] = (num >> 16) & 0xFF;
+  output[2] = (num >> 8) & 0xFF;
+  output[3] = num & 0xFF;
+
+  return (int)(4 - padding);
 }
 
-unsigned int base85_decode(const char* input, unsigned int input_len, unsigned char* output) {
-    unsigned int output_pos = 0;
+int base85_decode(const char *input, unsigned int input_len,
+                  unsigned char *output) {
+  // Input validation
+  if (!output) {
+    return -1;
+  }
+  if (input_len > 0 && !input) {
+    return -1;
+  }
 
-    char carry[5];
-    unsigned int carry_len = 0;
+  unsigned int output_pos = 0;
 
-    for (unsigned int i = 0; i < input_len; i++) {
-        unsigned char c = (unsigned char)input[i];
-        if (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' || c == '\f') continue;
+  char carry[5];
+  unsigned int carry_len = 0;
 
-        carry[carry_len++] = (char)c;
-        if (carry_len == 5) {
-            output_pos += base85_decode_block(carry, 5, output + output_pos);
-            carry_len = 0;
-        }
+  for (unsigned int i = 0; i < input_len; i++) {
+    unsigned char c = (unsigned char)input[i];
+    // Skip whitespace characters
+    if (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' ||
+        c == '\f')
+      continue;
+
+    carry[carry_len++] = (char)c;
+    if (carry_len == 5) {
+      int result = base85_decode_block(carry, 5, output + output_pos);
+      if (result < 0) {
+        // Invalid character encountered
+        return -1;
+      }
+      output_pos += (unsigned int)result;
+      carry_len = 0;
     }
+  }
 
-    if (carry_len > 0) {
-        output_pos += base85_decode_block(carry, carry_len, output + output_pos);
+  if (carry_len > 0) {
+    int result = base85_decode_block(carry, carry_len, output + output_pos);
+    if (result < 0) {
+      // Invalid character encountered
+      return -1;
     }
+    output_pos += (unsigned int)result;
+  }
 
-    return output_pos;
+  return (int)output_pos;
 }
